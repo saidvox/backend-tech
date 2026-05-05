@@ -1,6 +1,21 @@
 spring:
+  config:
+    import: optional:file:.env[.properties],optional:file:backend/.env[.properties]
   application:
     name: techstore-pro-backend
+  profiles:
+    active: postgres
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:google-client-id-disabled}
+            client-secret: ${GOOGLE_CLIENT_SECRET:google-client-secret-disabled}
+            scope:
+              - openid
+              - profile
+              - email
   datasource:
     url: jdbc:h2:mem:techstore;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
     driver-class-name: org.h2.Driver
@@ -22,6 +37,8 @@ server:
   port: 8080
 
 app:
+  datasource:
+    auto-detect: ${APP_DATASOURCE_AUTO_DETECT:true}
   cors:
     allowed-origins:
       - http://localhost:4200
@@ -30,6 +47,9 @@ app:
     secret: ${JWT_SECRET:techstore-pro-dev-secret-key-change-in-production-123456}
     issuer: ${JWT_ISSUER:techstore-pro}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
+  oauth2:
+    success-redirect-uri: ${OAUTH2_SUCCESS_REDIRECT_URI:http://localhost:4200/auth/oauth2/success}
+    failure-redirect-uri: ${OAUTH2_FAILURE_REDIRECT_URI:http://localhost:4200/login}
 
 springdoc:
   api-docs:

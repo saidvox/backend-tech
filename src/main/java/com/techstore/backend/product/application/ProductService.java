@@ -5,6 +5,8 @@ import com.techstore.backend.common.exception.BadRequestException;
 import com.techstore.backend.common.exception.ResourceNotFoundException;
 import com.techstore.backend.common.api.PageResponse;
 import com.techstore.backend.config.security.CurrentUserService;
+import com.techstore.backend.category.domain.Category;
+import com.techstore.backend.category.infrastructure.CategoryRepository;
 import com.techstore.backend.product.api.ProductRequest;
 import com.techstore.backend.product.api.ProductResponse;
 import com.techstore.backend.product.api.ProductSearchCriteria;
@@ -22,10 +24,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ProductService {
 	private final ProductRepository productRepository;
+	private final CategoryRepository categoryRepository;
 	private final CurrentUserService currentUserService;
 
-	public ProductService(ProductRepository productRepository, CurrentUserService currentUserService) {
+	public ProductService(
+			ProductRepository productRepository,
+			CategoryRepository categoryRepository,
+			CurrentUserService currentUserService) {
 		this.productRepository = productRepository;
+		this.categoryRepository = categoryRepository;
 		this.currentUserService = currentUserService;
 	}
 
@@ -70,32 +77,54 @@ public class ProductService {
 
 	@Transactional
 	public ProductResponse create(ProductRequest request) {
+		Category category = resolveCategory(request);
 		Product product = new Product(
 				request.name().trim(),
-				request.category().trim(),
+				category,
 				request.description().trim(),
 				request.price(),
-				request.stock());
-		product.update(product.getName(), product.getCategory(), product.getDescription(), product.getPrice(), product.getStock(), request.active());
+				request.stock(),
+				trimToNull(request.imageUrl()));
+		product.update(product.getName(), category, product.getDescription(), product.getPrice(), product.getStock(), request.active(), product.getImageUrl());
 		return ProductResponse.from(productRepository.save(product));
 	}
 
 	@Transactional
 	public ProductResponse update(Long id, ProductRequest request) {
 		Product product = findEntity(id);
+		Category category = resolveCategory(request);
 		product.update(
 				request.name().trim(),
-				request.category().trim(),
+				category,
 				request.description().trim(),
 				request.price(),
 				request.stock(),
-				request.active());
+				request.active(),
+				trimToNull(request.imageUrl()));
 		return ProductResponse.from(product);
 	}
 
 	@Transactional
 	public void delete(Long id) {
 		Product product = findEntity(id);
-		product.update(product.getName(), product.getCategory(), product.getDescription(), product.getPrice(), product.getStock(), false);
+		Category category = product.getCategoryId() == null ? null : categoryRepository.findById(product.getCategoryId()).orElse(null);
+		product.update(product.getName(), category, product.getDescription(), product.getPrice(), product.getStock(), false, product.getImageUrl());
+	}
+
+	private Category resolveCategory(ProductRequest request) {
+		if (request.categoryId() != null) {
+			return categoryRepository.findById(request.categoryId())
+					.orElseThrow(() -> new ResourceNotFoundException("Categoria no encontrada"));
+		}
+		if (request.category() == null || request.category().isBlank()) {
+			throw new BadRequestException("Debe seleccionar una categoria");
+		}
+		String name = request.category().trim();
+		return categoryRepository.findByNameIgnoreCase(name)
+				.orElseGet(() -> categoryRepository.save(new Category(name)));
+	}
+
+	private String trimToNull(String value) {
+		return value == null || value.isBlank() ? null : value.trim();
 	}
 }

@@ -8,6 +8,8 @@ import com.techstore.backend.product.api.ProductSearchCriteria;
 import com.techstore.backend.product.api.ProductStockStatus;
 import com.techstore.backend.product.domain.Product;
 
+import jakarta.persistence.criteria.JoinType;
+
 import org.springframework.data.jpa.domain.Specification;
 
 public final class ProductSpecifications {
@@ -57,7 +59,10 @@ public final class ProductSpecifications {
 			if (!hasText(category)) {
 				return builder.conjunction();
 			}
-			return builder.equal(builder.lower(root.get("category")), category.trim().toLowerCase());
+			String normalized = category.trim().toLowerCase();
+			return builder.or(
+					builder.equal(builder.lower(root.join("category", JoinType.LEFT).get("name")), normalized),
+					builder.equal(builder.lower(root.get("categoryName")), normalized));
 		};
 	}
 

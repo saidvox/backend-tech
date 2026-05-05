@@ -1,0 +1,3 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+com.techstore.backend.config.datasource.AutoDatasourceEnvironmentPostProcessor
+

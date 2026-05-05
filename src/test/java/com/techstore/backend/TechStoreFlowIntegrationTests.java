@@ -1,6 +1,7 @@
 package com.techstore.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -9,9 +10,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Map;
+import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.techstore.backend.auth.application.OAuth2UserProvisioningService;
+import com.techstore.backend.user.infrastructure.UserRepository;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,13 +23,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
+@SpringBootTest(properties = "app.datasource.auto-detect=false")
 @AutoConfigureMockMvc
 class TechStoreFlowIntegrationTests {
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private OAuth2UserProvisioningService oauth2UserProvisioningService;
+
+	@Autowired
+	private UserRepository userRepository;
 
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -62,6 +73,13 @@ class TechStoreFlowIntegrationTests {
 	void shouldRejectCartWithoutToken() throws Exception {
 		mockMvc.perform(get("/carrito"))
 				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	@DisplayName("Should expose Google OAuth2 authorization endpoint")
+	void shouldExposeGoogleOAuth2AuthorizationEndpoint() throws Exception {
+		mockMvc.perform(get("/oauth2/authorization/google"))
+				.andExpect(status().is3xxRedirection());
 	}
 
 	@Test
@@ -148,6 +166,60 @@ class TechStoreFlowIntegrationTests {
 						.content(objectMapper.writeValueAsString(Map.of("status", "CANCELLED"))))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value("CANCELLED"));
+	}
+
+	@Test
+	@DisplayName("Should link Google OAuth2 profile only when email is already registered")
+	void shouldProvisionRegisteredGoogleUser() {
+		DefaultOAuth2User googleUser = new DefaultOAuth2User(
+				Set.of(),
+				Map.of(
+						"sub", "google-user-123",
+						"email", "cliente@techstore.com",
+						"name", "Cliente Google"),
+				"sub");
+
+		var user = oauth2UserProvisioningService.findRegisteredGoogleUser(googleUser);
+		var sameUser = oauth2UserProvisioningService.findRegisteredGoogleUser(googleUser);
+
+		assertThat(user.getId()).isEqualTo(sameUser.getId());
+		assertThat(userRepository.findByEmail("cliente@techstore.com")).isPresent();
+		assertThat(user.getOauth2Provider()).isEqualTo("google");
+		assertThat(user.getOauth2ProviderId()).isEqualTo("google-user-123");
+	}
+
+	@Test
+	@DisplayName("Should reject Google OAuth2 profile when email is not registered")
+	void shouldRejectUnregisteredGoogleUser() {
+		DefaultOAuth2User googleUser = new DefaultOAuth2User(
+				Set.of(),
+				Map.of(
+						"sub", "new-google-user-123",
+						"email", "new.google.user@techstore.com",
+						"name", "New Google User"),
+				"sub");
+
+		assertThatThrownBy(() -> oauth2UserProvisioningService.findRegisteredGoogleUser(googleUser))
+				.hasMessageContaining("Primero debes registrarte");
+		assertThat(userRepository.findByEmail("new.google.user@techstore.com")).isEmpty();
+	}
+
+	@Test
+	@DisplayName("Should create user from Google OAuth2 profile when registering")
+	void shouldRegisterGoogleUser() {
+		DefaultOAuth2User googleUser = new DefaultOAuth2User(
+				Set.of(),
+				Map.of(
+						"sub", "new-google-register-123",
+						"email", "new.google.register@techstore.com",
+						"name", "New Google Register"),
+				"sub");
+
+		var user = oauth2UserProvisioningService.findOrCreateGoogleUserForRegistration(googleUser);
+
+		assertThat(userRepository.findByEmail("new.google.register@techstore.com")).isPresent();
+		assertThat(user.getOauth2Provider()).isEqualTo("google");
+		assertThat(user.getOauth2ProviderId()).isEqualTo("new-google-register-123");
 	}
 
 	private String loginAsCustomer() throws Exception {

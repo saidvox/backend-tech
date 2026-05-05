@@ -32,6 +32,12 @@ public class AppUser {
 	@Column(nullable = false)
 	private String password;
 
+	@Column(length = 40)
+	private String oauth2Provider;
+
+	@Column(length = 160)
+	private String oauth2ProviderId;
+
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
 	private Role role = Role.USER;
@@ -50,6 +56,14 @@ public class AppUser {
 		this.role = role;
 	}
 
+	public void linkOAuth2Account(String provider, String providerId, String name) {
+		this.oauth2Provider = provider;
+		this.oauth2ProviderId = providerId;
+		if (name != null && !name.isBlank()) {
+			this.name = name;
+		}
+	}
+
 	public Long getId() {
 		return id;
 	}
@@ -64,6 +78,14 @@ public class AppUser {
 
 	public String getPassword() {
 		return password;
+	}
+
+	public String getOauth2Provider() {
+		return oauth2Provider;
+	}
+
+	public String getOauth2ProviderId() {
+		return oauth2ProviderId;
 	}
 
 	public Role getRole() {

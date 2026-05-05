@@ -6,12 +6,16 @@ import java.time.Instant;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.techstore.backend.category.domain.Category;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -25,11 +29,18 @@ public class Product {
 	@Column(nullable = false, length = 120)
 	private String name;
 
-	@Column(nullable = false, length = 80)
-	private String category;
+	@Column(name = "category", length = 80)
+	private String categoryName;
+
+	@ManyToOne
+	@JoinColumn(name = "category_id")
+	private Category category;
 
 	@Column(nullable = false, length = 500)
 	private String description;
+
+	@Column(length = 1000)
+	private String imageUrl;
 
 	@Column(nullable = false, precision = 10, scale = 2)
 	private BigDecimal price;
@@ -47,21 +58,25 @@ public class Product {
 	protected Product() {
 	}
 
-	public Product(String name, String category, String description, BigDecimal price, int stock) {
+	public Product(String name, Category category, String description, BigDecimal price, int stock, String imageUrl) {
 		this.name = name;
 		this.category = category;
+		this.categoryName = category == null ? null : category.getName();
 		this.description = description;
 		this.price = price;
 		this.stock = stock;
+		this.imageUrl = imageUrl;
 	}
 
-	public void update(String name, String category, String description, BigDecimal price, int stock, boolean active) {
+	public void update(String name, Category category, String description, BigDecimal price, int stock, boolean active, String imageUrl) {
 		this.name = name;
 		this.category = category;
+		this.categoryName = category == null ? this.categoryName : category.getName();
 		this.description = description;
 		this.price = price;
 		this.stock = stock;
 		this.active = active;
+		this.imageUrl = imageUrl;
 	}
 
 	public void reduceStock(int quantity) {
@@ -81,11 +96,23 @@ public class Product {
 	}
 
 	public String getCategory() {
-		return category;
+		return category == null ? categoryName : category.getName();
+	}
+
+	public Long getCategoryId() {
+		return category == null ? null : category.getId();
+	}
+
+	public String getCategoryName() {
+		return categoryName;
 	}
 
 	public String getDescription() {
 		return description;
+	}
+
+	public String getImageUrl() {
+		return imageUrl;
 	}
 
 	public BigDecimal getPrice() {

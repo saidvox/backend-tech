@@ -79,7 +79,13 @@ http://localhost:8080/v3/api-docs
 
 ## PostgreSQL con Docker
 
-El perfil por defecto usa H2 en memoria. Para ejecutar con PostgreSQL local en Docker:
+El backend detecta PostgreSQL automaticamente cuando no defines un perfil explicito:
+
+- Si PostgreSQL responde con las credenciales de `.env`, usa PostgreSQL.
+- Si PostgreSQL no responde, usa H2 en memoria.
+- Si defines `SPRING_PROFILES_ACTIVE`, se respeta ese perfil y no se aplica la deteccion automatica.
+
+Para usar PostgreSQL local en Docker:
 
 1. Crear el archivo local de variables:
 
@@ -93,13 +99,23 @@ Copy-Item .env.example .env
 docker compose up -d
 ```
 
-3. Ejecutar el backend con perfil PostgreSQL:
+3. Ejecutar el backend:
+
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+Si quieres forzar PostgreSQL sin autodeteccion:
 
 ```powershell
 $env:SPRING_PROFILES_ACTIVE="postgres"
-$env:DB_URL="jdbc:postgresql://localhost:5432/techstore"
-$env:DB_USERNAME="techstore"
-$env:DB_PASSWORD="techstore123"
+.\mvnw.cmd spring-boot:run
+```
+
+Si quieres desactivar la autodeteccion y usar H2 aunque Docker este prendido:
+
+```powershell
+$env:APP_DATASOURCE_AUTO_DETECT="false"
 .\mvnw.cmd spring-boot:run
 ```
 
@@ -152,6 +168,41 @@ La respuesta incluye un JWT. Para endpoints protegidos:
 ```http
 Authorization: Bearer <token>
 ```
+
+### Google OAuth2
+
+El login con Google usa variables de entorno. No guardar el Client Secret en el repositorio.
+
+Variables:
+
+```powershell
+$env:GOOGLE_CLIENT_ID="<tu-client-id>"
+$env:GOOGLE_CLIENT_SECRET="<tu-client-secret>"
+$env:OAUTH2_SUCCESS_REDIRECT_URI="http://localhost:4200/auth/oauth2/success"
+$env:OAUTH2_FAILURE_REDIRECT_URI="http://localhost:4200/login"
+```
+
+Tambien puedes poner esas variables en `.env`. El backend importa automaticamente ese archivo cuando se ejecuta desde la carpeta `backend` o desde la carpeta padre del proyecto.
+
+En Google Cloud, el redirect URI autorizado debe ser:
+
+```text
+http://localhost:8080/login/oauth2/code/google
+```
+
+Para iniciar el flujo desde Angular, redirigir el navegador a:
+
+```text
+http://localhost:8080/oauth2/authorization/google
+```
+
+Si Google autentica correctamente, el backend crea o reutiliza el usuario por email, genera el JWT propio del sistema y redirige al frontend:
+
+```text
+http://localhost:4200/auth/oauth2/success?token=<jwt>&tokenType=Bearer
+```
+
+El frontend debe tomar ese `token` y usarlo igual que el token devuelto por `POST /auth/login`.
 
 ### Productos
 
