@@ -1,0 +1,65 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### Logs and runtime files ###
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+### OS files ###
+.DS_Store
+Thumbs.db
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Local environment ###
+.env
+.env.*
+!.env.example
+
+### Local Docker data and overrides ###
+docker-compose.override.yml
+compose.override.yml
+postgres-data/
+pgdata/
+
+### Local test/database artifacts ###
+*.db
+*.mv.db
+*.trace.db
+
+### Local agent skills/tooling ###
+.agents/
+.claude/
+skills-lock.json
