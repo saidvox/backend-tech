@@ -45,6 +45,8 @@ public class ProductController {
 	public PageResponse<ProductResponse> catalog(
 			@Parameter(description = "Busca por nombre o descripcion")
 			@RequestParam(required = false) String q,
+			@Parameter(description = "Filtra por id de categoria")
+			@RequestParam(required = false) Long categoryId,
 			@Parameter(description = "Filtra por categoria exacta")
 			@RequestParam(required = false) String category,
 			@Parameter(description = "Precio minimo")
@@ -64,6 +66,7 @@ public class ProductController {
 			@ParameterObject Pageable pageable) {
 		return productService.findCatalog(new ProductSearchCriteria(
 				q,
+				categoryId,
 				category,
 				minPrice,
 				maxPrice,

@@ -1,9 +1,12 @@
 package com.techstore.backend.product.application;
 
+import java.util.Map;
+
 import com.techstore.backend.common.exception.ApiException;
 import com.techstore.backend.common.exception.BadRequestException;
 import com.techstore.backend.common.exception.ResourceNotFoundException;
 import com.techstore.backend.common.api.PageResponse;
+import com.techstore.backend.common.api.PageableSort;
 import com.techstore.backend.config.security.CurrentUserService;
 import com.techstore.backend.category.domain.Category;
 import com.techstore.backend.category.infrastructure.CategoryRepository;
@@ -17,12 +20,25 @@ import com.techstore.backend.user.domain.Role;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ProductService {
+	private static final Map<String, String> ALLOWED_SORTS = Map.of(
+			"id", "id",
+			"name", "name",
+			"price", "price",
+			"stock", "stock",
+			"active", "active",
+			"createdat", "createdAt",
+			"category", "categoryName");
+	private static final Sort DEFAULT_SORT = Sort.by(
+			Sort.Order.desc("createdAt"),
+			Sort.Order.desc("id"));
+
 	private final ProductRepository productRepository;
 	private final CategoryRepository categoryRepository;
 	private final CurrentUserService currentUserService;
@@ -47,9 +63,10 @@ public class ProductService {
 			canViewInactive = true;
 		}
 		validateCriteria(criteria);
+		Pageable sanitizedPageable = PageableSort.whitelist(pageable, ALLOWED_SORTS, DEFAULT_SORT);
 		Page<ProductResponse> products = productRepository.findAll(
 				ProductSpecifications.matching(criteria, canViewInactive),
-				pageable).map(ProductResponse::from);
+				sanitizedPageable).map(ProductResponse::from);
 		return PageResponse.from(products);
 	}
 
@@ -112,16 +129,16 @@ public class ProductService {
 	}
 
 	private Category resolveCategory(ProductRequest request) {
-		if (request.categoryId() != null) {
+		if (request.hasCategoryId()) {
 			return categoryRepository.findById(request.categoryId())
 					.orElseThrow(() -> new ResourceNotFoundException("Categoria no encontrada"));
 		}
-		if (request.category() == null || request.category().isBlank()) {
+		String legacyCategoryName = request.legacyCategoryName();
+		if (legacyCategoryName == null || legacyCategoryName.isBlank()) {
 			throw new BadRequestException("Debe seleccionar una categoria");
 		}
-		String name = request.category().trim();
-		return categoryRepository.findByNameIgnoreCase(name)
-				.orElseGet(() -> categoryRepository.save(new Category(name)));
+		return categoryRepository.findByNameIgnoreCase(legacyCategoryName)
+				.orElseGet(() -> categoryRepository.save(new Category(legacyCategoryName)));
 	}
 
 	private String trimToNull(String value) {

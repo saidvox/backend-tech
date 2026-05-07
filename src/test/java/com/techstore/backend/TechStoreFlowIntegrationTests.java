@@ -15,6 +15,7 @@ import java.util.Set;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.techstore.backend.auth.application.OAuth2UserProvisioningService;
+import com.techstore.backend.category.infrastructure.CategoryRepository;
 import com.techstore.backend.user.infrastructure.UserRepository;
 
 import org.junit.jupiter.api.DisplayName;
@@ -26,7 +27,10 @@ import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = "app.datasource.auto-detect=false")
+@SpringBootTest(properties = {
+		"app.datasource.auto-detect=false",
+		"spring.profiles.active=test"
+})
 @AutoConfigureMockMvc
 class TechStoreFlowIntegrationTests {
 	@Autowired
@@ -37,6 +41,9 @@ class TechStoreFlowIntegrationTests {
 
 	@Autowired
 	private UserRepository userRepository;
+
+	@Autowired
+	private CategoryRepository categoryRepository;
 
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -103,10 +110,26 @@ class TechStoreFlowIntegrationTests {
 	@Test
 	@DisplayName("Should filter products by search, category, price, and stock")
 	void shouldFilterProducts() throws Exception {
-		mockMvc.perform(get("/productos?q=mouse&category=Mouse&minPrice=50&maxPrice=120&stockStatus=IN_STOCK&page=0&size=10"))
+		Long mouseCategoryId = categoryRepository.findByNameIgnoreCase("Mouse").orElseThrow().getId();
+
+		mockMvc.perform(get("/productos?q=mouse&categoryId={categoryId}&category=Mouse&minPrice=50&maxPrice=120&stockStatus=IN_STOCK&page=0&size=10&sort=price,desc", mouseCategoryId))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.content.length()").value(1))
+				.andExpect(jsonPath("$.content[0].categoryId").value(mouseCategoryId))
 				.andExpect(jsonPath("$.content[0].name").value("Mouse Gamer Pro"));
+	}
+
+	@Test
+	@DisplayName("Should reject unsupported sort fields")
+	void shouldRejectUnsupportedSortFields() throws Exception {
+		String token = loginAsCustomer();
+
+		mockMvc.perform(get("/productos?page=0&size=10&sort=description,asc"))
+				.andExpect(status().isBadRequest());
+
+		mockMvc.perform(get("/pedidos?page=0&size=10&sort=user.email,asc")
+						.header("Authorization", "Bearer " + token))
+				.andExpect(status().isBadRequest());
 	}
 
 	@Test

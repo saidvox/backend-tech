@@ -18,4 +18,11 @@ public record ProductRequest(
 		@Min(0) int stock,
 		boolean active
 ) {
+	public boolean hasCategoryId() {
+		return categoryId != null;
+	}
+
+	public String legacyCategoryName() {
+		return category == null ? null : category.trim();
+	}
 }

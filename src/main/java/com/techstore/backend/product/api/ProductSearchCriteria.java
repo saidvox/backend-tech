@@ -5,6 +5,7 @@ import java.time.LocalDate;
 
 public record ProductSearchCriteria(
 		String q,
+		Long categoryId,
 		String category,
 		BigDecimal minPrice,
 		BigDecimal maxPrice,

@@ -50,6 +50,16 @@ app:
   oauth2:
     success-redirect-uri: ${OAUTH2_SUCCESS_REDIRECT_URI:http://localhost:4200/auth/oauth2/success}
     failure-redirect-uri: ${OAUTH2_FAILURE_REDIRECT_URI:http://localhost:4200/login}
+  payments:
+    mercado-pago:
+      mode: ${MERCADO_PAGO_MODE:simulation}
+      access-token: ${MERCADO_PAGO_ACCESS_TOKEN:}
+      api-base-url: ${MERCADO_PAGO_API_BASE_URL:https://api.mercadopago.com}
+      simulated-checkout-url: ${MERCADO_PAGO_SIMULATED_CHECKOUT_URL:http://localhost:4200/checkout/mercado-pago/simulacion}
+      notification-url: ${MERCADO_PAGO_NOTIFICATION_URL:http://localhost:8080/pagos/webhooks/mercado-pago}
+      success-url: ${MERCADO_PAGO_SUCCESS_URL:http://localhost:4200/pedidos}
+      failure-url: ${MERCADO_PAGO_FAILURE_URL:http://localhost:4200/carrito}
+      pending-url: ${MERCADO_PAGO_PENDING_URL:http://localhost:4200/pedidos}
 
 springdoc:
   api-docs:

@@ -22,6 +22,7 @@ public final class ProductSpecifications {
 		return Specification.allOf(
 				visibility(criteria, canViewInactive),
 				textSearch(criteria.q()),
+				categoryId(criteria.categoryId()),
 				category(criteria.category()),
 				minPrice(criteria.minPrice()),
 				maxPrice(criteria.maxPrice()),
@@ -64,6 +65,12 @@ public final class ProductSpecifications {
 					builder.equal(builder.lower(root.join("category", JoinType.LEFT).get("name")), normalized),
 					builder.equal(builder.lower(root.get("categoryName")), normalized));
 		};
+	}
+
+	private static Specification<Product> categoryId(Long categoryId) {
+		return (root, query, builder) -> categoryId == null
+				? builder.conjunction()
+				: builder.equal(root.join("category", JoinType.LEFT).get("id"), categoryId);
 	}
 
 	private static Specification<Product> minPrice(BigDecimal minPrice) {

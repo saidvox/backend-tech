@@ -39,7 +39,7 @@ public class PurchaseOrder {
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
-	private OrderStatus status = OrderStatus.CONFIRMED;
+	private OrderStatus status = OrderStatus.PENDING_PAYMENT;
 
 	@Column(nullable = false, precision = 10, scale = 2)
 	private BigDecimal total = BigDecimal.ZERO;

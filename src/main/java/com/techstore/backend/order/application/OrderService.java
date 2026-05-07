@@ -1,11 +1,13 @@
 package com.techstore.backend.order.application;
 
 import java.util.List;
+import java.util.Map;
 
 import com.techstore.backend.cart.application.CartService;
 import com.techstore.backend.cart.domain.CartItem;
 import com.techstore.backend.cart.infrastructure.CartItemRepository;
 import com.techstore.backend.common.api.PageResponse;
+import com.techstore.backend.common.api.PageableSort;
 import com.techstore.backend.common.exception.ApiException;
 import com.techstore.backend.common.exception.BadRequestException;
 import com.techstore.backend.common.exception.ResourceNotFoundException;
@@ -23,12 +25,22 @@ import com.techstore.backend.user.domain.Role;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class OrderService {
+	private static final Map<String, String> ALLOWED_SORTS = Map.of(
+			"id", "id",
+			"status", "status",
+			"total", "total",
+			"createdat", "createdAt");
+	private static final Sort DEFAULT_SORT = Sort.by(
+			Sort.Order.desc("createdAt"),
+			Sort.Order.desc("id"));
+
 	private final OrderRepository orderRepository;
 	private final CartItemRepository cartItemRepository;
 	private final CartService cartService;
@@ -47,6 +59,16 @@ public class OrderService {
 
 	@Transactional
 	public OrderResponse confirmOrder() {
+		PurchaseOrder savedOrder = createOrderFromCart(OrderStatus.CONFIRMED);
+		return OrderResponse.from(savedOrder);
+	}
+
+	@Transactional
+	public PurchaseOrder createPendingPaymentOrderFromCart() {
+		return createOrderFromCart(OrderStatus.PENDING_PAYMENT);
+	}
+
+	private PurchaseOrder createOrderFromCart(OrderStatus initialStatus) {
 		AppUser user = currentUserService.getCurrentUser();
 		List<CartItem> cartItems = cartService.itemsForCurrentUser();
 		if (cartItems.isEmpty()) {
@@ -62,13 +84,14 @@ public class OrderService {
 		}
 
 		PurchaseOrder order = new PurchaseOrder(user);
+		order.updateStatus(initialStatus);
 		for (CartItem item : cartItems) {
 			order.addItem(new OrderItem(item.getProduct(), item.getQuantity()));
 			item.getProduct().reduceStock(item.getQuantity());
 		}
 		PurchaseOrder savedOrder = orderRepository.save(order);
 		cartItemRepository.deleteByUser(user);
-		return OrderResponse.from(savedOrder);
+		return savedOrder;
 	}
 
 	@Transactional(readOnly = true)
@@ -84,9 +107,10 @@ public class OrderService {
 			throw new ApiException(HttpStatus.FORBIDDEN, "Solo un administrador puede filtrar pedidos por usuario");
 		}
 		validateCriteria(criteria);
+		Pageable sanitizedPageable = PageableSort.whitelist(pageable, ALLOWED_SORTS, DEFAULT_SORT);
 		Page<OrderResponse> orders = orderRepository.findAll(
 				OrderSpecifications.matching(criteria, currentUser, includeAll),
-				pageable).map(OrderResponse::from);
+				sanitizedPageable).map(OrderResponse::from);
 		return PageResponse.from(orders);
 	}
 
@@ -134,7 +158,14 @@ public class OrderService {
 			return OrderResponse.from(order);
 		}
 
-		if (currentStatus == OrderStatus.CONFIRMED && requestedStatus == OrderStatus.CANCELLED) {
+		if (currentStatus == OrderStatus.DELIVERED) {
+			throw new BadRequestException("Un pedido entregado no puede cambiar de estado");
+		}
+		if (requestedStatus == OrderStatus.PENDING_PAYMENT) {
+			throw new BadRequestException("No se puede volver un pedido a pendiente de pago");
+		}
+		if ((currentStatus == OrderStatus.CONFIRMED || currentStatus == OrderStatus.PENDING_PAYMENT)
+				&& requestedStatus == OrderStatus.CANCELLED) {
 			restoreStock(order);
 		}
 		if (currentStatus == OrderStatus.CANCELLED && requestedStatus == OrderStatus.CONFIRMED) {
@@ -143,6 +174,21 @@ public class OrderService {
 
 		order.updateStatus(requestedStatus);
 		return OrderResponse.from(order);
+	}
+
+	public void markPaymentApproved(PurchaseOrder order) {
+		if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
+			throw new BadRequestException("El pedido no esta pendiente de pago");
+		}
+		order.updateStatus(OrderStatus.CONFIRMED);
+	}
+
+	public void markPaymentRejected(PurchaseOrder order) {
+		if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
+			throw new BadRequestException("El pedido no esta pendiente de pago");
+		}
+		restoreStock(order);
+		order.updateStatus(OrderStatus.CANCELLED);
 	}
 
 	private void restoreStock(PurchaseOrder order) {
