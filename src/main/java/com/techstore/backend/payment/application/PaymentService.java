@@ -93,7 +93,7 @@ public class PaymentService {
 
 	private CheckoutResponse startRealMercadoPagoCheckout(PurchaseOrder order, String externalReference) {
 		MercadoPagoPreferenceResponse preference = mercadoPagoClient.createPreference(order, externalReference);
-		String checkoutUrl = preference.checkoutUrl();
+		String checkoutUrl = preference.checkoutUrl(mercadoPagoProperties.sandboxMode());
 		Payment payment = paymentRepository.save(new Payment(
 				order,
 				PaymentProvider.MERCADO_PAGO,
@@ -131,6 +131,24 @@ public class PaymentService {
 		return PaymentResponse.from(payment);
 	}
 
+	@Transactional
+	public PaymentResponse syncMercadoPagoReturn(String externalReference, String paymentId, String providerStatus) {
+		Payment payment = findPayment(externalReference);
+		assertCanAccess(payment);
+		if (payment.getProvider() != PaymentProvider.MERCADO_PAGO) {
+			return PaymentResponse.from(payment);
+		}
+		if (hasText(paymentId) && !"null".equalsIgnoreCase(paymentId)) {
+			MercadoPagoPaymentResponse providerPayment = mercadoPagoClient.getPayment(paymentId);
+			PaymentStatus status = mapStatus(providerPayment.status());
+			payment.updateFromProvider(status, providerPayment.id(), providerPayment.statusDetail());
+		} else if (hasText(providerStatus)) {
+			payment.updateFromProvider(mapStatus(providerStatus), null, providerStatus);
+		}
+		syncOrderStatus(payment);
+		return PaymentResponse.from(payment);
+	}
+
 	private void syncOrderStatus(Payment payment) {
 		if (payment.getStatus() == PaymentStatus.APPROVED && payment.getOrder().getStatus().name().equals("PENDING_PAYMENT")) {
 			orderService.markPaymentApproved(payment.getOrder());
@@ -156,6 +174,10 @@ public class PaymentService {
 	private Payment findPayment(String externalReference) {
 		return paymentRepository.findByExternalReference(externalReference)
 				.orElseThrow(() -> new ResourceNotFoundException("Pago no encontrado"));
+	}
+
+	private boolean hasText(String value) {
+		return value != null && !value.isBlank();
 	}
 
 	private void assertPending(Payment payment) {

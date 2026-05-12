@@ -55,6 +55,14 @@ public class PaymentController {
 		return paymentService.rejectSimulation(externalReference);
 	}
 
+	@PostMapping("/mercado-pago/{externalReference}/sincronizar")
+	@Operation(summary = "Sincronizar retorno de Mercado Pago")
+	public PaymentResponse syncMercadoPagoReturn(
+			@PathVariable String externalReference,
+			@RequestBody MercadoPagoReturnRequest request) {
+		return paymentService.syncMercadoPagoReturn(externalReference, request.paymentId(), request.status());
+	}
+
 	@PostMapping("/webhooks/mercado-pago")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@Operation(summary = "Recibir webhook de Mercado Pago")

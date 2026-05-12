@@ -12,10 +12,23 @@ public record MercadoPagoProperties(
 		String notificationUrl,
 		String successUrl,
 		String failureUrl,
-		String pendingUrl
+	String pendingUrl
 ) {
 	public boolean realMode() {
-		return "real".equalsIgnoreCase(mode);
+		return "real".equalsIgnoreCase(mode)
+				|| "production".equalsIgnoreCase(mode)
+				|| "sandbox".equalsIgnoreCase(mode)
+				|| "test".equalsIgnoreCase(mode);
+	}
+
+	public boolean sandboxMode() {
+		return "sandbox".equalsIgnoreCase(mode)
+				|| "test".equalsIgnoreCase(mode);
+	}
+
+	public boolean productionMode() {
+		return "real".equalsIgnoreCase(mode)
+				|| "production".equalsIgnoreCase(mode);
 	}
 
 	public boolean hasAccessToken() {

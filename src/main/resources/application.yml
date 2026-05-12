@@ -57,9 +57,9 @@ app:
       api-base-url: ${MERCADO_PAGO_API_BASE_URL:https://api.mercadopago.com}
       simulated-checkout-url: ${MERCADO_PAGO_SIMULATED_CHECKOUT_URL:http://localhost:4200/checkout/mercado-pago/simulacion}
       notification-url: ${MERCADO_PAGO_NOTIFICATION_URL:http://localhost:8080/pagos/webhooks/mercado-pago}
-      success-url: ${MERCADO_PAGO_SUCCESS_URL:http://localhost:4200/pedidos}
-      failure-url: ${MERCADO_PAGO_FAILURE_URL:http://localhost:4200/carrito}
-      pending-url: ${MERCADO_PAGO_PENDING_URL:http://localhost:4200/pedidos}
+      success-url: ${MERCADO_PAGO_SUCCESS_URL:http://localhost:4200/checkout/mercado-pago/retorno}
+      failure-url: ${MERCADO_PAGO_FAILURE_URL:http://localhost:4200/checkout/mercado-pago/retorno}
+      pending-url: ${MERCADO_PAGO_PENDING_URL:http://localhost:4200/checkout/mercado-pago/retorno}
 
 springdoc:
   api-docs:

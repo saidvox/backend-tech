@@ -1,6 +1,7 @@
 package com.techstore.backend.payment.infrastructure;
 
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.techstore.backend.common.exception.ApiException;
@@ -12,6 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestClient;
 
 @Component
@@ -24,24 +26,30 @@ public class MercadoPagoClient {
 
 	public MercadoPagoPreferenceResponse createPreference(PurchaseOrder order, String externalReference) {
 		RestClient client = client();
-		Map<String, Object> body = Map.of(
-				"auto_return", "approved",
-				"external_reference", externalReference,
-				"notification_url", properties.notificationUrl(),
-				"back_urls", Map.of(
-						"success", properties.successUrl(),
-						"failure", properties.failureUrl(),
-						"pending", properties.pendingUrl()),
-				"payer", Map.of(
-						"email", order.getUser().getEmail(),
-						"name", order.getUser().getName()),
-				"items", order.getItems().stream().map(this::item).toList());
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("external_reference", externalReference);
+		body.put("back_urls", Map.of(
+				"success", properties.successUrl(),
+				"failure", properties.failureUrl(),
+				"pending", properties.pendingUrl()));
+		body.put("payment_methods", Map.of("installments", 1));
+		body.put("items", order.getItems().stream().map(this::item).toList());
+		if (isPublicUrl(properties.successUrl())) {
+			body.put("auto_return", "approved");
+		}
+		if (isPublicUrl(properties.notificationUrl())) {
+			body.put("notification_url", properties.notificationUrl());
+		}
 
-		return client.post()
-				.uri("/checkout/preferences")
-				.body(body)
-				.retrieve()
-				.body(MercadoPagoPreferenceResponse.class);
+		try {
+			return client.post()
+					.uri("/checkout/preferences")
+					.body(body)
+					.retrieve()
+					.body(MercadoPagoPreferenceResponse.class);
+		} catch (RestClientResponseException ex) {
+			throw new ApiException(HttpStatus.BAD_GATEWAY, "Mercado Pago rechazo la preferencia: " + ex.getResponseBodyAsString());
+		}
 	}
 
 	public MercadoPagoPaymentResponse getPayment(String paymentId) {
@@ -52,15 +60,28 @@ public class MercadoPagoClient {
 	}
 
 	private Map<String, Object> item(OrderItem item) {
-		return Map.of(
-				"id", item.getProduct().getId().toString(),
-				"title", item.getProduct().getName(),
-				"description", item.getProduct().getDescription(),
-				"picture_url", item.getProduct().getImageUrl() == null ? "" : item.getProduct().getImageUrl(),
-				"category_id", "others",
-				"quantity", item.getQuantity(),
-				"currency_id", "PEN",
-				"unit_price", item.getUnitPrice());
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("id", item.getProduct().getId().toString());
+		body.put("title", item.getProduct().getName());
+		body.put("description", item.getProduct().getDescription());
+		body.put("category_id", "others");
+		body.put("quantity", item.getQuantity());
+		body.put("currency_id", "PEN");
+		body.put("unit_price", item.getUnitPrice());
+		if (isPublicUrl(item.getProduct().getImageUrl())) {
+			body.put("picture_url", item.getProduct().getImageUrl());
+		}
+		return body;
+	}
+
+	private boolean isPublicUrl(String value) {
+		if (value == null || value.isBlank()) {
+			return false;
+		}
+		String normalized = value.toLowerCase();
+		return (normalized.startsWith("http://") || normalized.startsWith("https://"))
+				&& !normalized.contains("localhost")
+				&& !normalized.contains("127.0.0.1");
 	}
 
 	private RestClient client() {

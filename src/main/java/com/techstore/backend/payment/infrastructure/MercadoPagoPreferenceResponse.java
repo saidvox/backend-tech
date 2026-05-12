@@ -7,7 +7,10 @@ public record MercadoPagoPreferenceResponse(
 		@JsonProperty("init_point") String initPoint,
 		@JsonProperty("sandbox_init_point") String sandboxInitPoint
 ) {
-	public String checkoutUrl() {
-		return initPoint == null || initPoint.isBlank() ? sandboxInitPoint : initPoint;
+	public String checkoutUrl(boolean sandboxMode) {
+		if (initPoint != null && !initPoint.isBlank()) {
+			return initPoint;
+		}
+		return sandboxInitPoint;
 	}
 }
