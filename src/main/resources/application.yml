@@ -35,14 +35,14 @@ spring:
 
 server:
   port: 8080
+  forward-headers-strategy: framework
+  shutdown: graceful
 
 app:
   datasource:
     auto-detect: ${APP_DATASOURCE_AUTO_DETECT:true}
   cors:
-    allowed-origins:
-      - http://localhost:4200
-      - http://127.0.0.1:4200
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:4200,http://127.0.0.1:4200}
   jwt:
     secret: ${JWT_SECRET:techstore-pro-dev-secret-key-change-in-production-123456}
     issuer: ${JWT_ISSUER:techstore-pro}
@@ -64,8 +64,10 @@ app:
 springdoc:
   api-docs:
     path: /v3/api-docs
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
   swagger-ui:
     path: /swagger-ui.html
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
     operations-sorter: method
     tags-sorter: alpha
 
@@ -85,3 +87,33 @@ spring:
   h2:
     console:
       enabled: false
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DB_URL}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    properties:
+      hibernate:
+        "[format_sql]": false
+  h2:
+    console:
+      enabled: false
+
+app:
+  datasource:
+    auto-detect: false
+
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:false}

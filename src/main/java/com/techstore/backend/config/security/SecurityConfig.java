@@ -45,6 +45,7 @@ public class SecurityConfig {
 				.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
 				.cors(cors -> { })
 				.authorizeHttpRequests(auth -> auth
+						.requestMatchers("/health").permitAll()
 						.requestMatchers("/h2-console/**").permitAll()
 						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 						.requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
