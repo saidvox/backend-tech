@@ -28,20 +28,43 @@ public class MercadoPagoClient {
 		RestClient client = client();
 		Map<String, Object> body = new LinkedHashMap<>();
 		body.put("external_reference", externalReference);
-		body.put("back_urls", Map.of(
-				"success", properties.successUrl(),
-				"failure", properties.failureUrl(),
-				"pending", properties.pendingUrl()));
+		Map<String, String> backUrls = new LinkedHashMap<>();
+		if (properties.successUrl() != null) backUrls.put("success", properties.successUrl());
+		if (properties.failureUrl() != null) backUrls.put("failure", properties.failureUrl());
+		if (properties.pendingUrl() != null) backUrls.put("pending", properties.pendingUrl());
+		body.put("back_urls", backUrls);
+
 		body.put("payment_methods", Map.of("installments", 1));
 		body.put("items", order.getItems().stream().map(this::item).toList());
+		
+		// Datos del pagador (payer) - Vital para que MP Sandbox habilite los botones de pago
+		Map<String, Object> payer = new LinkedHashMap<>();
+		payer.put("email", order.getUser().getEmail());
+		String fullName = order.getUser().getName();
+		if (fullName != null && !fullName.isBlank()) {
+			String[] parts = fullName.split(" ", 2);
+			payer.put("first_name", parts[0]);
+			if (parts.length > 1) {
+				payer.put("last_name", parts[1]);
+			}
+		}
+		body.put("payer", payer);
+		
+		// Nombre que aparece en el extracto de la tarjeta
+		body.put("statement_descriptor", "TECHSTORE");
+		
+		// Solo activar retorno automático si la URL es PÚBLICA (MP no permite localhost para auto_return)
 		if (isPublicUrl(properties.successUrl())) {
 			body.put("auto_return", "approved");
 		}
+
 		if (isPublicUrl(properties.notificationUrl())) {
 			body.put("notification_url", properties.notificationUrl());
 		}
 
+
 		try {
+
 			return client.post()
 					.uri("/checkout/preferences")
 					.body(body)
