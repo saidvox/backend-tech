@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/pagos")
 @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
-@Tag(name = "Pagos", description = "Checkout y simulacion de pagos con Mercado Pago")
+@Tag(name = "Pagos", description = "Checkout y pagos con Mercado Pago")
 public class PaymentController {
 	private final PaymentService paymentService;
 
@@ -30,11 +30,18 @@ public class PaymentController {
 		this.paymentService = paymentService;
 	}
 
+	@PostMapping("/checkout/mercado-pago")
+	@ResponseStatus(HttpStatus.CREATED)
+	@Operation(summary = "Crear checkout de Mercado Pago desde el carrito")
+	public CheckoutResponse startMercadoPagoCheckout() {
+		return paymentService.startMercadoPagoCheckout();
+	}
+
 	@PostMapping("/checkout/mercado-pago/simulacion")
 	@ResponseStatus(HttpStatus.CREATED)
-	@Operation(summary = "Crear checkout simulado de Mercado Pago desde el carrito")
-	public CheckoutResponse startMercadoPagoSimulation() {
-		return paymentService.startMercadoPagoSimulation();
+	@Operation(summary = "Crear checkout de Mercado Pago desde el carrito", deprecated = true)
+	public CheckoutResponse startMercadoPagoCheckoutLegacy() {
+		return paymentService.startMercadoPagoCheckout();
 	}
 
 	@GetMapping("/{externalReference}")

@@ -47,9 +47,9 @@ public class PaymentService {
 	}
 
 	@Transactional
-	public CheckoutResponse startMercadoPagoSimulation() {
+	public CheckoutResponse startMercadoPagoCheckout() {
 		PurchaseOrder order = orderService.createPendingPaymentOrderFromCart();
-		String externalReference = "MP-SIM-" + UUID.randomUUID();
+		String externalReference = "MP-" + UUID.randomUUID();
 		if (mercadoPagoProperties.realMode()) {
 			return startRealMercadoPagoCheckout(order, externalReference);
 		}
