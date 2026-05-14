@@ -28,6 +28,9 @@ public class MercadoPagoClient {
 		RestClient client = client();
 		Map<String, Object> body = new LinkedHashMap<>();
 		body.put("external_reference", externalReference);
+		if (properties.walletPurchaseOnly()) {
+			body.put("purpose", "wallet_purchase");
+		}
 		Map<String, String> backUrls = new LinkedHashMap<>();
 		if (properties.successUrl() != null) backUrls.put("success", properties.successUrl());
 		if (properties.failureUrl() != null) backUrls.put("failure", properties.failureUrl());
@@ -37,9 +40,9 @@ public class MercadoPagoClient {
 		body.put("payment_methods", Map.of("installments", 1));
 		body.put("items", order.getItems().stream().map(this::item).toList());
 		
-		// Datos del pagador (payer) - Vital para que MP Sandbox habilite los botones de pago
+		// En sandbox permite fijar el comprador de prueba sin depender del usuario local.
 		Map<String, Object> payer = new LinkedHashMap<>();
-		payer.put("email", order.getUser().getEmail());
+		payer.put("email", properties.hasTestPayerEmail() ? properties.testPayerEmail() : order.getUser().getEmail());
 		String fullName = order.getUser().getName();
 		if (fullName != null && !fullName.isBlank()) {
 			String[] parts = fullName.split(" ", 2);

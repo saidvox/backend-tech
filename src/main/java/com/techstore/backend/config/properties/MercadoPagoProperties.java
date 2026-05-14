@@ -12,7 +12,9 @@ public record MercadoPagoProperties(
 		String notificationUrl,
 		String successUrl,
 		String failureUrl,
-	String pendingUrl
+		String pendingUrl,
+		String testPayerEmail,
+		boolean walletPurchaseOnly
 ) {
 	public boolean realMode() {
 		return "real".equalsIgnoreCase(mode)
@@ -33,5 +35,9 @@ public record MercadoPagoProperties(
 
 	public boolean hasAccessToken() {
 		return StringUtils.hasText(accessToken);
+	}
+
+	public boolean hasTestPayerEmail() {
+		return StringUtils.hasText(testPayerEmail);
 	}
 }

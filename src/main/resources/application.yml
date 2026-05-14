@@ -60,6 +60,8 @@ app:
       success-url: ${MERCADO_PAGO_SUCCESS_URL:http://localhost:4200/checkout/mercado-pago/retorno}
       failure-url: ${MERCADO_PAGO_FAILURE_URL:http://localhost:4200/checkout/mercado-pago/retorno}
       pending-url: ${MERCADO_PAGO_PENDING_URL:http://localhost:4200/checkout/mercado-pago/retorno}
+      test-payer-email: ${MERCADO_PAGO_TEST_PAYER_EMAIL:}
+      wallet-purchase-only: ${MERCADO_PAGO_WALLET_PURCHASE_ONLY:false}
 
 springdoc:
   api-docs:
