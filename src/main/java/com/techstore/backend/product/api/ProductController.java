@@ -5,6 +5,7 @@ import java.time.LocalDate;
 
 import com.techstore.backend.config.openapi.OpenApiConfig;
 import com.techstore.backend.common.api.PageResponse;
+import com.techstore.backend.product.application.ProductImageStorageService;
 import com.techstore.backend.product.application.ProductService;
 
 import io.swagger.v3.oas.annotations.Parameter;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 
@@ -35,9 +37,11 @@ import jakarta.validation.Valid;
 @Tag(name = "Productos", description = "Catalogo publico y administracion de productos")
 public class ProductController {
 	private final ProductService productService;
+	private final ProductImageStorageService productImageStorageService;
 
-	public ProductController(ProductService productService) {
+	public ProductController(ProductService productService, ProductImageStorageService productImageStorageService) {
 		this.productService = productService;
+		this.productImageStorageService = productImageStorageService;
 	}
 
 	@GetMapping
@@ -90,6 +94,14 @@ public class ProductController {
 	@Operation(summary = "Crear producto")
 	public ProductResponse create(@Valid @RequestBody ProductRequest request) {
 		return productService.create(request);
+	}
+
+	@PostMapping(value = "/imagenes", consumes = "multipart/form-data")
+	@PreAuthorize("hasRole('ADMIN')")
+	@SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
+	@Operation(summary = "Subir imagen de producto a Google Drive")
+	public ProductImageUploadResponse uploadImage(@RequestParam("file") MultipartFile file) {
+		return productImageStorageService.upload(file);
 	}
 
 	@PutMapping("/{id}")
