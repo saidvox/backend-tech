@@ -16,6 +16,20 @@ spring:
               - openid
               - profile
               - email
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
+          connectiontimeout: ${MAIL_SMTP_CONNECTION_TIMEOUT:5000}
+          timeout: ${MAIL_SMTP_TIMEOUT:5000}
+          writetimeout: ${MAIL_SMTP_WRITE_TIMEOUT:5000}
   datasource:
     url: jdbc:h2:mem:techstore;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
     driver-class-name: org.h2.Driver
@@ -50,6 +64,16 @@ app:
   oauth2:
     success-redirect-uri: ${OAUTH2_SUCCESS_REDIRECT_URI:http://localhost:4200/auth/oauth2/success}
     failure-redirect-uri: ${OAUTH2_FAILURE_REDIRECT_URI:http://localhost:4200/login}
+  mail:
+    verification:
+      enabled: ${MAIL_ENABLED:false}
+      from: ${MAIL_FROM:TechStore Pro <no-reply@techstore.local>}
+      code-ttl: ${MAIL_VERIFICATION_CODE_TTL:15m}
+      subject: ${MAIL_VERIFICATION_SUBJECT:Codigo de verificacion - TechStore Pro}
+    purchase:
+      enabled: ${MAIL_ENABLED:false}
+      from: ${MAIL_FROM:TechStore Pro <no-reply@techstore.local>}
+      subject: ${MAIL_PURCHASE_SUBJECT:Confirmacion de compra - TechStore Pro}
   payments:
     mercado-pago:
       mode: ${MERCADO_PAGO_MODE:simulation}

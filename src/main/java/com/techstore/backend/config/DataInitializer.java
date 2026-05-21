@@ -25,18 +25,22 @@ public class DataInitializer {
 			PasswordEncoder passwordEncoder) {
 		return args -> {
 			if (!userRepository.existsByEmail("admin@techstore.com")) {
-				userRepository.save(new AppUser(
+				AppUser admin = new AppUser(
 						"Administrador",
 						"admin@techstore.com",
 						passwordEncoder.encode("admin123"),
-						Role.ADMIN));
+						Role.ADMIN);
+				admin.markEmailVerified();
+				userRepository.save(admin);
 			}
 			if (!userRepository.existsByEmail("cliente@techstore.com")) {
-				userRepository.save(new AppUser(
+				AppUser customer = new AppUser(
 						"Cliente Demo",
 						"cliente@techstore.com",
 						passwordEncoder.encode("cliente123"),
-						Role.USER));
+						Role.USER);
+				customer.markEmailVerified();
+				userRepository.save(customer);
 			}
 
 			Category keyboards = findOrCreateCategory(categoryRepository, "Teclados");

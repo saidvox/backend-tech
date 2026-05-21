@@ -45,21 +45,25 @@ public class OrderService {
 	private final CartItemRepository cartItemRepository;
 	private final CartService cartService;
 	private final CurrentUserService currentUserService;
+	private final OrderPurchaseEmailSender purchaseEmailSender;
 
 	public OrderService(
 			OrderRepository orderRepository,
 			CartItemRepository cartItemRepository,
 			CartService cartService,
-			CurrentUserService currentUserService) {
+			CurrentUserService currentUserService,
+			OrderPurchaseEmailSender purchaseEmailSender) {
 		this.orderRepository = orderRepository;
 		this.cartItemRepository = cartItemRepository;
 		this.cartService = cartService;
 		this.currentUserService = currentUserService;
+		this.purchaseEmailSender = purchaseEmailSender;
 	}
 
 	@Transactional
 	public OrderResponse confirmOrder() {
 		PurchaseOrder savedOrder = createOrderFromCart(OrderStatus.CONFIRMED);
+		purchaseEmailSender.sendPurchaseConfirmation(savedOrder);
 		return OrderResponse.from(savedOrder);
 	}
 
@@ -181,6 +185,7 @@ public class OrderService {
 			throw new BadRequestException("El pedido no esta pendiente de pago");
 		}
 		order.updateStatus(OrderStatus.CONFIRMED);
+		purchaseEmailSender.sendPurchaseConfirmation(order);
 	}
 
 	public void markPaymentRejected(PurchaseOrder order) {

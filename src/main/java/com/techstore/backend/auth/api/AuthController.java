@@ -31,7 +31,7 @@ public class AuthController {
 			@ApiResponse(responseCode = "201", description = "Usuario registrado"),
 			@ApiResponse(responseCode = "409", description = "Correo ya registrado")
 	})
-	public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
+	public VerificationRequiredResponse register(@Valid @RequestBody RegisterRequest request) {
 		return authService.register(request);
 	}
 
@@ -42,5 +42,23 @@ public class AuthController {
 	})
 	public AuthResponse login(@Valid @RequestBody LoginRequest request) {
 		return authService.login(request);
+	}
+
+	@PostMapping("/verify-email")
+	@Operation(summary = "Verificar correo", responses = {
+			@ApiResponse(responseCode = "200", description = "Correo verificado"),
+			@ApiResponse(responseCode = "400", description = "Codigo invalido o expirado")
+	})
+	public AuthResponse verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+		return authService.verifyEmail(request);
+	}
+
+	@PostMapping("/resend-verification")
+	@Operation(summary = "Reenviar codigo de verificacion", responses = {
+			@ApiResponse(responseCode = "200", description = "Codigo reenviado"),
+			@ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+	})
+	public VerificationRequiredResponse resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
+		return authService.resendVerification(request);
 	}
 }

@@ -32,6 +32,18 @@ public class AppUser {
 	@Column(nullable = false)
 	private String password;
 
+	@Column(nullable = false)
+	private boolean emailVerified = false;
+
+	@Column(length = 255)
+	private String emailVerificationCodeHash;
+
+	@Column
+	private Instant emailVerificationExpiresAt;
+
+	@Column
+	private Instant emailVerificationIssuedAt;
+
 	@Column(length = 40)
 	private String oauth2Provider;
 
@@ -78,6 +90,42 @@ public class AppUser {
 
 	public String getPassword() {
 		return password;
+	}
+
+	public boolean isEmailVerified() {
+		return emailVerified;
+	}
+
+	public void setEmailVerificationCode(String emailVerificationCodeHash, Instant emailVerificationExpiresAt, Instant emailVerificationIssuedAt) {
+		this.emailVerificationCodeHash = emailVerificationCodeHash;
+		this.emailVerificationExpiresAt = emailVerificationExpiresAt;
+		this.emailVerificationIssuedAt = emailVerificationIssuedAt;
+	}
+
+	public String getEmailVerificationCodeHash() {
+		return emailVerificationCodeHash;
+	}
+
+	public Instant getEmailVerificationExpiresAt() {
+		return emailVerificationExpiresAt;
+	}
+
+	public Instant getEmailVerificationIssuedAt() {
+		return emailVerificationIssuedAt;
+	}
+
+	public void markEmailVerified() {
+		this.emailVerified = true;
+		this.emailVerificationCodeHash = null;
+		this.emailVerificationExpiresAt = null;
+		this.emailVerificationIssuedAt = null;
+	}
+
+	public void markEmailUnverified() {
+		this.emailVerified = false;
+		this.emailVerificationCodeHash = null;
+		this.emailVerificationExpiresAt = null;
+		this.emailVerificationIssuedAt = null;
 	}
 
 	public String getOauth2Provider() {
