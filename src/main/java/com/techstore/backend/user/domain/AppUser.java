@@ -32,7 +32,7 @@ public class AppUser {
 	@Column(nullable = false)
 	private String password;
 
-	@Column(nullable = false)
+	@Column(nullable = false, columnDefinition = "boolean default false")
 	private boolean emailVerified = false;
 
 	@Column(length = 255)
