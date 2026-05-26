@@ -1,6 +1,8 @@
 package com.techstore.backend.order.application;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.techstore.backend.config.properties.PurchaseMailProperties;
 import com.techstore.backend.order.domain.OrderItem;
@@ -33,31 +35,41 @@ public class OrderPurchaseEmailSender {
 			return;
 		}
 
-		SimpleMailMessage message = new SimpleMailMessage();
-		message.setTo(order.getUser().getEmail());
-		message.setFrom(properties.from());
-		message.setSubject(properties.subject());
-		message.setText(buildBody(order));
+		sendCustomerConfirmation(mailSender, order);
+		sendStoreNotification(mailSender, order);
+	}
 
+	private void sendCustomerConfirmation(JavaMailSender mailSender, PurchaseOrder order) {
 		try {
+			SimpleMailMessage message = new SimpleMailMessage();
+			message.setTo(order.getUser().getEmail());
+			message.setFrom(properties.from());
+			message.setSubject(properties.subject());
+			message.setText(buildCustomerBody(order));
 			mailSender.send(message);
 		} catch (MailException exception) {
-			log.error("No se pudo enviar notificacion de compra para pedido {}", order.getId(), exception);
+			log.error("No se pudo enviar confirmacion de compra al cliente para pedido {}", order.getId(), exception);
 		}
 	}
 
-	private String buildBody(PurchaseOrder order) {
-		StringBuilder items = new StringBuilder();
-		for (OrderItem item : order.getItems()) {
-			items.append("- ")
-					.append(item.getProduct().getName())
-					.append(" x")
-					.append(item.getQuantity())
-					.append(" | S/ ")
-					.append(money(item.getSubtotal()))
-					.append(System.lineSeparator());
+	private void sendStoreNotification(JavaMailSender mailSender, PurchaseOrder order) {
+		if (properties.storeRecipient() == null) {
+			return;
 		}
 
+		try {
+			SimpleMailMessage message = new SimpleMailMessage();
+			message.setTo(properties.storeRecipient());
+			message.setFrom(properties.from());
+			message.setSubject("Nueva compra registrada - Pedido #" + orderId(order));
+			message.setText(buildStoreBody(order));
+			mailSender.send(message);
+		} catch (MailException exception) {
+			log.error("No se pudo enviar notificacion interna de compra para pedido {}", order.getId(), exception);
+		}
+	}
+
+	private String buildCustomerBody(PurchaseOrder order) {
 		return """
 				Hola %s,
 
@@ -72,10 +84,49 @@ public class OrderPurchaseEmailSender {
 				Gracias por tu compra.
 				""".formatted(
 						order.getUser().getName(),
-						order.getId() == null ? "pendiente" : order.getId(),
+						orderId(order),
 						order.getStatus(),
 						money(order.getTotal()),
-						items);
+						productLines(order));
+	}
+
+	private String buildStoreBody(PurchaseOrder order) {
+		return """
+				Se registro una nueva compra en TechStore Pro.
+
+				Pedido: #%s
+				Estado: %s
+				Cliente: %s
+				Correo: %s
+				Total: S/ %s
+
+				Productos:
+				%s
+				""".formatted(
+						orderId(order),
+						order.getStatus(),
+						order.getUser().getName(),
+						order.getUser().getEmail(),
+						money(order.getTotal()),
+						productLines(order));
+	}
+
+	private String productLines(PurchaseOrder order) {
+		List<String> lines = new ArrayList<>();
+		for (OrderItem item : order.getItems()) {
+			lines.add("- %s x%d | S/ %s".formatted(
+					item.getProduct().getName(),
+					item.getQuantity(),
+					money(item.getSubtotal())));
+		}
+		return String.join(System.lineSeparator(), lines);
+	}
+
+	private String orderId(PurchaseOrder order) {
+		if (order.getId() == null) {
+			return "pendiente";
+		}
+		return order.getId().toString();
 	}
 
 	private String money(BigDecimal value) {

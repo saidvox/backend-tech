@@ -6,7 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record PurchaseMailProperties(
 		boolean enabled,
 		String from,
-		String subject
+		String subject,
+		String storeRecipient
 ) {
 	public PurchaseMailProperties {
 		if (from == null || from.isBlank()) {
@@ -14,6 +15,9 @@ public record PurchaseMailProperties(
 		}
 		if (subject == null || subject.isBlank()) {
 			subject = "Confirmacion de compra - TechStore Pro";
+		}
+		if (storeRecipient != null && storeRecipient.isBlank()) {
+			storeRecipient = null;
 		}
 	}
 }

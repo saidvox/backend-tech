@@ -74,6 +74,7 @@ app:
       enabled: ${MAIL_ENABLED:false}
       from: ${MAIL_FROM:TechStore Pro <no-reply@techstore.local>}
       subject: ${MAIL_PURCHASE_SUBJECT:Confirmacion de compra - TechStore Pro}
+      store-recipient: ${MAIL_PURCHASE_STORE_RECIPIENT:${MAIL_USERNAME:}}
   payments:
     mercado-pago:
       mode: ${MERCADO_PAGO_MODE:simulation}
