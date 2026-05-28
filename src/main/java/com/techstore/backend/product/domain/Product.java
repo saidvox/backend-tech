@@ -1,6 +1,7 @@
 package com.techstore.backend.product.domain;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 
 import org.springframework.data.annotation.CreatedDate;
@@ -45,6 +46,15 @@ public class Product {
 	@Column(nullable = false, precision = 10, scale = 2)
 	private BigDecimal price;
 
+	@Column(precision = 10, scale = 2)
+	private BigDecimal offerPrice;
+
+	@Column
+	private Instant offerStartsAt;
+
+	@Column
+	private Instant offerEndsAt;
+
 	@Column(nullable = false)
 	private int stock;
 
@@ -69,6 +79,20 @@ public class Product {
 	}
 
 	public void update(String name, Category category, String description, BigDecimal price, int stock, boolean active, String imageUrl) {
+		update(name, category, description, price, stock, active, imageUrl, offerPrice, offerStartsAt, offerEndsAt);
+	}
+
+	public void update(
+			String name,
+			Category category,
+			String description,
+			BigDecimal price,
+			int stock,
+			boolean active,
+			String imageUrl,
+			BigDecimal offerPrice,
+			Instant offerStartsAt,
+			Instant offerEndsAt) {
 		this.name = name;
 		this.category = category;
 		this.categoryName = category == null ? this.categoryName : category.getName();
@@ -77,6 +101,9 @@ public class Product {
 		this.stock = stock;
 		this.active = active;
 		this.imageUrl = imageUrl;
+		this.offerPrice = offerPrice;
+		this.offerStartsAt = offerStartsAt;
+		this.offerEndsAt = offerEndsAt;
 	}
 
 	public void reduceStock(int quantity) {
@@ -117,6 +144,42 @@ public class Product {
 
 	public BigDecimal getPrice() {
 		return price;
+	}
+
+	public BigDecimal getOfferPrice() {
+		return offerPrice;
+	}
+
+	public Instant getOfferStartsAt() {
+		return offerStartsAt;
+	}
+
+	public Instant getOfferEndsAt() {
+		return offerEndsAt;
+	}
+
+	public boolean isOnOffer() {
+		if (offerPrice == null || price == null || offerPrice.compareTo(BigDecimal.ZERO) <= 0 || offerPrice.compareTo(price) >= 0) {
+			return false;
+		}
+		Instant now = Instant.now();
+		boolean startsOk = offerStartsAt == null || !now.isBefore(offerStartsAt);
+		boolean endsOk = offerEndsAt == null || now.isBefore(offerEndsAt);
+		return startsOk && endsOk;
+	}
+
+	public BigDecimal getEffectivePrice() {
+		return isOnOffer() ? offerPrice : price;
+	}
+
+	public Integer getDiscountPercentage() {
+		if (!isOnOffer()) {
+			return null;
+		}
+		BigDecimal discount = price.subtract(offerPrice)
+				.multiply(BigDecimal.valueOf(100))
+				.divide(price, 0, RoundingMode.HALF_UP);
+		return discount.intValue();
 	}
 
 	public int getStock() {

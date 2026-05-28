@@ -44,7 +44,7 @@ public class OrderItem {
 	public OrderItem(Product product, int quantity) {
 		this.product = product;
 		this.quantity = quantity;
-		this.unitPrice = product.getPrice();
+		this.unitPrice = product.getEffectivePrice();
 		this.subtotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
 	}
 

@@ -3,6 +3,7 @@ package com.techstore.backend;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -29,7 +30,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(properties = {
 		"app.datasource.auto-detect=false",
-		"spring.profiles.active=test"
+		"spring.profiles.active=test",
+		"app.mail.verification.enabled=false",
+		"app.mail.purchase.enabled=false"
 })
 @AutoConfigureMockMvc
 class TechStoreFlowIntegrationTests {
@@ -189,6 +192,80 @@ class TechStoreFlowIntegrationTests {
 						.content(objectMapper.writeValueAsString(Map.of("status", "CANCELLED"))))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value("CANCELLED"));
+	}
+
+	@Test
+	@DisplayName("Should allow customers to manage favorite products")
+	void shouldManageFavoriteProducts() throws Exception {
+		String token = loginAsCustomer();
+
+		mockMvc.perform(post("/favoritos/1")
+						.header("Authorization", "Bearer " + token))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.id").value(1))
+				.andExpect(jsonPath("$.favorite").value(true));
+
+		mockMvc.perform(post("/favoritos/1")
+						.header("Authorization", "Bearer " + token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(1))
+				.andExpect(jsonPath("$.favorite").value(true));
+
+		mockMvc.perform(get("/favoritos")
+						.header("Authorization", "Bearer " + token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(1))
+				.andExpect(jsonPath("$[0].id").value(1))
+				.andExpect(jsonPath("$[0].favorite").value(true));
+
+		mockMvc.perform(delete("/favoritos/1")
+						.header("Authorization", "Bearer " + token))
+				.andExpect(status().isNoContent());
+
+		mockMvc.perform(get("/favoritos")
+						.header("Authorization", "Bearer " + token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(0));
+	}
+
+	@Test
+	@DisplayName("Should expose active offers and use effective price in orders")
+	void shouldUseEffectivePriceForActiveOffers() throws Exception {
+		String adminToken = login("admin@techstore.com", "admin123");
+		String customerToken = loginAsCustomer();
+		Long keyboardsCategoryId = categoryRepository.findByNameIgnoreCase("Teclados").orElseThrow().getId();
+
+		mockMvc.perform(put("/productos/1")
+						.header("Authorization", "Bearer " + adminToken)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(Map.of(
+								"name", "Teclado Mecanico RGB",
+								"categoryId", keyboardsCategoryId,
+								"description", "Teclado mecanico compacto con switches tactiles e iluminacion RGB.",
+								"imageUrl", "https://placehold.co/600x400/e2e8f0/0f172a?text=Teclado+RGB",
+								"price", "189.90",
+								"stock", 12,
+								"active", true,
+								"offerPrice", "99.90",
+								"offerStartsAt", "2026-01-01T00:00:00Z",
+								"offerEndsAt", "2099-01-01T00:00:00Z"))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.onOffer").value(true))
+				.andExpect(jsonPath("$.price").value(189.90))
+				.andExpect(jsonPath("$.effectivePrice").value(99.90));
+
+		mockMvc.perform(put("/carrito/items/1")
+						.header("Authorization", "Bearer " + customerToken)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(Map.of("quantity", 2))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.total").value(199.80));
+
+		mockMvc.perform(post("/pedidos")
+						.header("Authorization", "Bearer " + customerToken))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.total").value(199.80))
+				.andExpect(jsonPath("$.items[0].unitPrice").value(99.90));
 	}
 
 	@Test

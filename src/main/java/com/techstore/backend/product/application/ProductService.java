@@ -81,6 +81,16 @@ public class ProductService {
 		}
 	}
 
+	public void validateOffer(ProductRequest request) {
+		if (request.offerPrice() != null && request.offerPrice().compareTo(request.price()) >= 0) {
+			throw new BadRequestException("El precio de oferta debe ser menor que el precio regular");
+		}
+		if (request.offerStartsAt() != null && request.offerEndsAt() != null
+				&& request.offerStartsAt().isAfter(request.offerEndsAt())) {
+			throw new BadRequestException("La fecha de inicio de oferta no puede ser posterior al fin");
+		}
+	}
+
 	@Transactional(readOnly = true)
 	public Product findEntity(Long id) {
 		return productRepository.findById(id)
@@ -94,6 +104,7 @@ public class ProductService {
 
 	@Transactional
 	public ProductResponse create(ProductRequest request) {
+		validateOffer(request);
 		Category category = resolveCategory(request);
 		Product product = new Product(
 				request.name().trim(),
@@ -102,12 +113,23 @@ public class ProductService {
 				request.price(),
 				request.stock(),
 				trimToNull(request.imageUrl()));
-		product.update(product.getName(), category, product.getDescription(), product.getPrice(), product.getStock(), request.active(), product.getImageUrl());
+		product.update(
+				product.getName(),
+				category,
+				product.getDescription(),
+				product.getPrice(),
+				product.getStock(),
+				request.active(),
+				product.getImageUrl(),
+				request.offerPrice(),
+				request.offerStartsAt(),
+				request.offerEndsAt());
 		return ProductResponse.from(productRepository.save(product));
 	}
 
 	@Transactional
 	public ProductResponse update(Long id, ProductRequest request) {
+		validateOffer(request);
 		Product product = findEntity(id);
 		Category category = resolveCategory(request);
 		product.update(
@@ -117,7 +139,10 @@ public class ProductService {
 				request.price(),
 				request.stock(),
 				request.active(),
-				trimToNull(request.imageUrl()));
+				trimToNull(request.imageUrl()),
+				request.offerPrice(),
+				request.offerStartsAt(),
+				request.offerEndsAt());
 		return ProductResponse.from(product);
 	}
 

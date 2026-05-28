@@ -75,6 +75,13 @@ app:
       from: ${MAIL_FROM:TechStore Pro <no-reply@techstore.local>}
       subject: ${MAIL_PURCHASE_SUBJECT:Confirmacion de compra - TechStore Pro}
       store-recipient: ${MAIL_PURCHASE_STORE_RECIPIENT:${MAIL_USERNAME:}}
+  reminders:
+    customer:
+      enabled: ${CUSTOMER_REMINDERS_ENABLED:false}
+      cron: ${CUSTOMER_REMINDER_CRON:0 0 9 * * *}
+      subject: ${CUSTOMER_REMINDER_SUBJECT:Ofertas para tus favoritos - TechStore Pro}
+      max-related: ${CUSTOMER_REMINDER_MAX_RELATED:3}
+      frontend-product-url: ${CUSTOMER_REMINDER_FRONTEND_PRODUCT_URL:http://localhost:4200/catalogo}
   payments:
     mercado-pago:
       mode: ${MERCADO_PAGO_MODE:simulation}

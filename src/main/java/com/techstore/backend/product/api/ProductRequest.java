@@ -1,6 +1,7 @@
 package com.techstore.backend.product.api;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -16,7 +17,10 @@ public record ProductRequest(
 		@Size(max = 1000) String imageUrl,
 		@NotNull @DecimalMin("0.01") BigDecimal price,
 		@Min(0) int stock,
-		boolean active
+		boolean active,
+		@DecimalMin("0.01") BigDecimal offerPrice,
+		Instant offerStartsAt,
+		Instant offerEndsAt
 ) {
 	public boolean hasCategoryId() {
 		return categoryId != null;

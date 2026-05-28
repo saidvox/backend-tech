@@ -13,11 +13,12 @@ public record CartItemResponse(
 		int availableStock
 ) {
 	public static CartItemResponse from(CartItem item) {
-		BigDecimal subtotal = item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+		BigDecimal unitPrice = item.getProduct().getEffectivePrice();
+		BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
 		return new CartItemResponse(
 				item.getProduct().getId(),
 				item.getProduct().getName(),
-				item.getProduct().getPrice(),
+				unitPrice,
 				item.getQuantity(),
 				subtotal,
 				item.getProduct().getStock());
