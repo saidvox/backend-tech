@@ -33,7 +33,7 @@ public class AppUser {
 	private String password;
 
 	@Column(nullable = false, columnDefinition = "boolean default false")
-	private boolean emailVerified = false;
+	private Boolean emailVerified = false;
 
 	@Column(length = 255)
 	private String emailVerificationCodeHash;
@@ -93,7 +93,7 @@ public class AppUser {
 	}
 
 	public boolean isEmailVerified() {
-		return emailVerified;
+		return Boolean.TRUE.equals(emailVerified);
 	}
 
 	public void setEmailVerificationCode(String emailVerificationCodeHash, Instant emailVerificationExpiresAt, Instant emailVerificationIssuedAt) {

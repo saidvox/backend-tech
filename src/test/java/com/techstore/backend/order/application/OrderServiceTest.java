@@ -13,6 +13,8 @@ import com.techstore.backend.category.domain.Category;
 import com.techstore.backend.config.security.CurrentUserService;
 import com.techstore.backend.order.domain.PurchaseOrder;
 import com.techstore.backend.order.infrastructure.OrderRepository;
+import com.techstore.backend.product.application.ProductRealtimeEventType;
+import com.techstore.backend.product.application.ProductRealtimePublisher;
 import com.techstore.backend.product.domain.Product;
 import com.techstore.backend.user.domain.AppUser;
 import com.techstore.backend.user.domain.Role;
@@ -42,6 +44,9 @@ class OrderServiceTest {
 	@Mock
 	private OrderPurchaseEmailSender purchaseEmailSender;
 
+	@Mock
+	private ProductRealtimePublisher productRealtimePublisher;
+
 	@Captor
 	private ArgumentCaptor<PurchaseOrder> orderCaptor;
 
@@ -63,6 +68,7 @@ class OrderServiceTest {
 		orderService().confirmOrder();
 
 		verify(purchaseEmailSender).sendPurchaseConfirmation(orderCaptor.getValue());
+		verify(productRealtimePublisher).publishAfterCommit(ProductRealtimeEventType.PRODUCT_STOCK_CHANGED, product);
 	}
 
 	@Test
@@ -77,6 +83,12 @@ class OrderServiceTest {
 	}
 
 	private OrderService orderService() {
-		return new OrderService(orderRepository, cartItemRepository, cartService, currentUserService, purchaseEmailSender);
+		return new OrderService(
+				orderRepository,
+				cartItemRepository,
+				cartService,
+				currentUserService,
+				purchaseEmailSender,
+				productRealtimePublisher);
 	}
 }

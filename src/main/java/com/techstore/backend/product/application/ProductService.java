@@ -42,14 +42,17 @@ public class ProductService {
 	private final ProductRepository productRepository;
 	private final CategoryRepository categoryRepository;
 	private final CurrentUserService currentUserService;
+	private final ProductRealtimePublisher realtimePublisher;
 
 	public ProductService(
 			ProductRepository productRepository,
 			CategoryRepository categoryRepository,
-			CurrentUserService currentUserService) {
+			CurrentUserService currentUserService,
+			ProductRealtimePublisher realtimePublisher) {
 		this.productRepository = productRepository;
 		this.categoryRepository = categoryRepository;
 		this.currentUserService = currentUserService;
+		this.realtimePublisher = realtimePublisher;
 	}
 
 	@Transactional(readOnly = true)
@@ -124,7 +127,9 @@ public class ProductService {
 				request.offerPrice(),
 				request.offerStartsAt(),
 				request.offerEndsAt());
-		return ProductResponse.from(productRepository.save(product));
+		Product savedProduct = productRepository.save(product);
+		realtimePublisher.publishAfterCommit(ProductRealtimeEventType.PRODUCT_CREATED, savedProduct);
+		return ProductResponse.from(savedProduct);
 	}
 
 	@Transactional
@@ -143,6 +148,9 @@ public class ProductService {
 				request.offerPrice(),
 				request.offerStartsAt(),
 				request.offerEndsAt());
+		realtimePublisher.publishAfterCommit(
+				product.isActive() ? ProductRealtimeEventType.PRODUCT_UPDATED : ProductRealtimeEventType.PRODUCT_DISABLED,
+				product);
 		return ProductResponse.from(product);
 	}
 
@@ -151,6 +159,7 @@ public class ProductService {
 		Product product = findEntity(id);
 		Category category = product.getCategoryId() == null ? null : categoryRepository.findById(product.getCategoryId()).orElse(null);
 		product.update(product.getName(), category, product.getDescription(), product.getPrice(), product.getStock(), false, product.getImageUrl());
+		realtimePublisher.publishAfterCommit(ProductRealtimeEventType.PRODUCT_DISABLED, product);
 	}
 
 	private Category resolveCategory(ProductRequest request) {

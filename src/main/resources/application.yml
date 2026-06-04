@@ -75,6 +75,14 @@ app:
       from: ${MAIL_FROM:TechStore Pro <no-reply@techstore.local>}
       subject: ${MAIL_PURCHASE_SUBJECT:Confirmacion de compra - TechStore Pro}
       store-recipient: ${MAIL_PURCHASE_STORE_RECIPIENT:${MAIL_USERNAME:}}
+    low-stock:
+      enabled: ${MAIL_LOW_STOCK_ENABLED:${MAIL_ENABLED:false}}
+      from: ${MAIL_FROM:TechStore Pro <no-reply@techstore.local>}
+      recipient: ${MAIL_LOW_STOCK_RECIPIENT:${MAIL_USERNAME:}}
+      subject: ${MAIL_LOW_STOCK_SUBJECT:Alerta de inventario - TechStore Pro}
+      cron: ${MAIL_LOW_STOCK_CRON:0 0 8 * * *}
+      threshold: ${MAIL_LOW_STOCK_THRESHOLD:5}
+      include-out-of-stock: ${MAIL_LOW_STOCK_INCLUDE_OUT_OF_STOCK:true}
   reminders:
     customer:
       enabled: ${CUSTOMER_REMINDERS_ENABLED:false}

@@ -20,6 +20,9 @@ import com.techstore.backend.order.domain.OrderStatus;
 import com.techstore.backend.order.domain.PurchaseOrder;
 import com.techstore.backend.order.infrastructure.OrderRepository;
 import com.techstore.backend.order.infrastructure.OrderSpecifications;
+import com.techstore.backend.product.application.ProductRealtimeEventType;
+import com.techstore.backend.product.application.ProductRealtimePublisher;
+import com.techstore.backend.product.domain.Product;
 import com.techstore.backend.user.domain.AppUser;
 import com.techstore.backend.user.domain.Role;
 
@@ -46,18 +49,21 @@ public class OrderService {
 	private final CartService cartService;
 	private final CurrentUserService currentUserService;
 	private final OrderPurchaseEmailSender purchaseEmailSender;
+	private final ProductRealtimePublisher productRealtimePublisher;
 
 	public OrderService(
 			OrderRepository orderRepository,
 			CartItemRepository cartItemRepository,
 			CartService cartService,
 			CurrentUserService currentUserService,
-			OrderPurchaseEmailSender purchaseEmailSender) {
+			OrderPurchaseEmailSender purchaseEmailSender,
+			ProductRealtimePublisher productRealtimePublisher) {
 		this.orderRepository = orderRepository;
 		this.cartItemRepository = cartItemRepository;
 		this.cartService = cartService;
 		this.currentUserService = currentUserService;
 		this.purchaseEmailSender = purchaseEmailSender;
+		this.productRealtimePublisher = productRealtimePublisher;
 	}
 
 	@Transactional
@@ -92,6 +98,7 @@ public class OrderService {
 		for (CartItem item : cartItems) {
 			order.addItem(new OrderItem(item.getProduct(), item.getQuantity()));
 			item.getProduct().reduceStock(item.getQuantity());
+			publishStockChanged(item.getProduct());
 		}
 		PurchaseOrder savedOrder = orderRepository.save(order);
 		cartItemRepository.deleteByUser(user);
@@ -199,6 +206,7 @@ public class OrderService {
 	private void restoreStock(PurchaseOrder order) {
 		for (OrderItem item : order.getItems()) {
 			item.getProduct().increaseStock(item.getQuantity());
+			publishStockChanged(item.getProduct());
 		}
 	}
 
@@ -213,6 +221,11 @@ public class OrderService {
 		}
 		for (OrderItem item : order.getItems()) {
 			item.getProduct().reduceStock(item.getQuantity());
+			publishStockChanged(item.getProduct());
 		}
+	}
+
+	private void publishStockChanged(Product product) {
+		productRealtimePublisher.publishAfterCommit(ProductRealtimeEventType.PRODUCT_STOCK_CHANGED, product);
 	}
 }

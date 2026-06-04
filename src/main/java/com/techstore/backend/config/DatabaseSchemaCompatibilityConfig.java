@@ -34,6 +34,9 @@ public class DatabaseSchemaCompatibilityConfig {
 					ADD CONSTRAINT payments_provider_check
 					CHECK (provider IN ('MERCADO_PAGO_SIMULATED', 'MERCADO_PAGO'))
 					""");
+			jdbcTemplate.execute("UPDATE users SET email_verified = false WHERE email_verified IS NULL");
+			jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN email_verified SET DEFAULT false");
+			jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN email_verified SET NOT NULL");
 		};
 	}
 }
